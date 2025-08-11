@@ -140,12 +140,14 @@ const ViewImageGallery = () => {
 
     try {
       // API endpoint needs to accept the destination ID and an array of URLs to delete
-      await apiClient.delete(`/admin/image-Gallery/delete`, { 
+      const {data}=await apiClient.delete(`/admin/image-Gallery/delete`, { 
         data: { 
           destination_id: selectedDestinationId,
           image_urls: urlsToDelete 
         } 
       });
+
+      toast.success(data.message || "Images deleted successfully!");
       
       // Update state optimistically
       setAllImages((prev) => prev.filter((img) => !urlsToDelete.includes(img.image_url)));

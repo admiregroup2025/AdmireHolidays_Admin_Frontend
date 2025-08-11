@@ -48,6 +48,25 @@ export const usePlaceStore = create((set, get) => ({
     }
   },
 
+  deleteDestination: async (id) => {
+    set({ isListLoading: true });
+    try {
+     const response = await apiClient.delete(`/admin/destination/delete/${id}`);
+      console.log("Delete response:", response);
+      if (response.status === 200) {
+        toast.success("Destination deleted successfully!");
+        // Refresh the list after deletion
+        await get().fetchDestinationList(response.data.type);
+      } else {
+        toast.error("Failed to delete");
+    }
+  }
+    catch(error){
+      console.error("Error deleting destination:", error);
+      toast.error("Failed to delete destination.");
+    }
+  },
+
   /**
    * Fetches the "Terms and Conditions" content for a specific destination.
    * @param {string} placeId - The ID of the destination.
