@@ -5,6 +5,7 @@ import { NavLink } from "react-router-dom";
 import { navbarLinks } from "@/constants";
 import logoLight from "@/assets/logo-light.svg";
 import logoDark from "@/assets/logo-dark.svg";
+import admire from "@/assets/admire.jpg";
 import { cn } from "@/utils/cn";
 import PropTypes from "prop-types";
 
@@ -19,9 +20,9 @@ export const Sidebar = forwardRef(({ collapsed }, ref) => {
             )}
         >
             <div className={cn("flex shrink-0 items-center gap-x-3 p-3", collapsed ? "md:justify-center" : "")}>
-                <img src={logoLight} alt="Logo" className={cn("h-8 w-8 dark:hidden", collapsed && "md:h-10 md:w-10")} />
-                <img src={logoDark} alt="Logo" className={cn("hidden h-8 w-8 dark:block", collapsed && "md:h-10 md:w-10")} />
-                {!collapsed && <p className="text-lg font-medium text-slate-900 transition-colors dark:text-slate-50">Admin</p>}
+                <img src={admire} alt="Logo" className={cn("h-8 w-18 dark:hidden", collapsed && "md:h-10 md:w-10")} />
+                <img src={admire} alt="Logo" className={cn("hidden h-8 w-18 dark:block", collapsed && "md:h-10 md:w-10")} />
+                {/* {!collapsed && <p className="text-lg font-medium text-slate-900 transition-colors dark:text-slate-50">Admin</p>} */}
             </div>
 
             {/* --- FIX APPLIED IN THIS SECTION --- */}

@@ -1,27 +1,37 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
-import { MapPin, Globe, Loader2, Pencil, Trash2 } from "lucide-react";
+import { MapPin, Globe, Loader2, Pencil, Trash2, Image as ImageIcon } from "lucide-react";
 import { usePlaceStore } from "../../stores/usePlaceStore";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const CreateDestination = () => {
     const [data, setData] = useState({
         type: "domestic",
         destination_name: "",
+        title_image: null // added field
     });
     const [isLoading, setIsLoading] = useState(false);
 
     const { createDestination, fetchDestinationList, destinationList, isListLoading } = usePlaceStore();
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchDestinationList(data.type);
     }, [data.type, fetchDestinationList]);
 
     const handleChange = (e) => {
-        setData({
-            ...data,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value, files } = e.target;
+        if (name === "title_image") {
+            setData({
+                ...data,
+                title_image: files[0]
+            });
+        } else {
+            setData({
+                ...data,
+                [name]: value,
+            });
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -30,33 +40,39 @@ const CreateDestination = () => {
             toast.error("Please enter a destination name.");
             return;
         }
+
+        // Prepare FormData for image upload
+        const formData = new FormData();
+        formData.append("type", data.type);
+        formData.append("destination_name", data.destination_name);
+        if (data.title_image) {
+            formData.append("image", data.title_image);
+        }
+
         setIsLoading(true);
-        const result = await createDestination(data);
+        const result = await createDestination(formData); // backend must handle multipart/form-data
         if (result.success) {
             setData({
                 type: data.type,
                 destination_name: "",
+                title_image: null
             });
+            fetchDestinationList(data.type);
         }
         setIsLoading(false);
     };
 
     const typeRef = useRef(data.type);
-
-    // Keep the ref in sync with the latest data.type
     useEffect(() => {
         typeRef.current = data.type;
     }, [data.type]);
+
     const handleEdit = (dest) => {
         toast.info(`Editing "${dest.destination_name}" (implement edit logic)`);
     };
 
     const handleDelete = async (id) => {
-        // console.log(`Deleting destination with id: ${id}`)
-        // toast.info(`Deleting destination with id: ${id} (implement delete logic)`);
         const result = await usePlaceStore.getState().deleteDestination(id);
-        console.log(typeRef.current);
-
         fetchDestinationList(typeRef.current);
     };
 
@@ -65,10 +81,8 @@ const CreateDestination = () => {
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Create New Destination</h1>
 
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900">
-                <form
-                    onSubmit={handleSubmit}
-                    className="space-y-6"
-                >
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    
                     {/* Destination Type */}
                     <div className="space-y-3">
                         <label className="block text-sm font-medium text-slate-800 dark:text-slate-200">
@@ -103,10 +117,7 @@ const CreateDestination = () => {
 
                     {/* Destination Name */}
                     <div className="space-y-2">
-                        <label
-                            htmlFor="destination_name"
-                            className="block text-sm font-medium text-slate-800 dark:text-slate-200"
-                        >
+                        <label htmlFor="destination_name" className="block text-sm font-medium text-slate-800 dark:text-slate-200">
                             <MapPin className="mr-2 inline-block size-5 text-slate-500" />
                             Destination Name
                         </label>
@@ -119,6 +130,22 @@ const CreateDestination = () => {
                             placeholder="e.g., Goa, Paris"
                             className="w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/80 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-blue-600"
                             required
+                        />
+                    </div>
+
+                    {/* Title Image */}
+                    <div className="space-y-2">
+                        <label htmlFor="title_image" className="block text-sm font-medium text-slate-800 dark:text-slate-200">
+                            <ImageIcon className="mr-2 inline-block size-5 text-slate-500" />
+                            Title Image
+                        </label>
+                        <input
+                            type="file"
+                            id="title_image"
+                            name="title_image"
+                            accept="image/*"
+                            onChange={handleChange}
+                            className="block w-full text-sm text-gray-700 dark:text-gray-300"
                         />
                     </div>
 
@@ -156,10 +183,7 @@ const CreateDestination = () => {
                         <thead className="bg-slate-100 dark:bg-slate-800">
                             <tr>
                                 <th className="px-4 py-2 text-left text-sm font-medium text-slate-800 dark:text-slate-200">Destination Name</th>
-                                <th
-                                    colSpan={2}
-                                    className="px-4 py-2 text-right text-sm font-medium text-slate-800 dark:text-slate-200"
-                                >
+                                <th colSpan={2} className="px-4 py-2 text-right text-sm font-medium text-slate-800 dark:text-slate-200">
                                     Actions
                                 </th>
                             </tr>
@@ -171,7 +195,7 @@ const CreateDestination = () => {
                                     <td className="px-2 py-2 text-right">
                                         <button
                                             type="button"
-                                            onClick={() => handleEdit(dest)}
+                                            onClick={() =>navigate(`/create_destination/edit/${dest._id}`)} 
                                             className="mr-3 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                                         >
                                             <Pencil className="h-5 w-5" />

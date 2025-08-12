@@ -29,6 +29,7 @@ import PlanYourJourney from "./routes/leads/plan_your_journey/page";
 import CreateCity from "./routes/create_city/page";
 import DestinationList from "./routes/destination_list/page";
 import CreateDestination from "./routes/create_destination/page";
+import EditDestination from "./routes/create_destination/EditPage.jsx";
 import AddUser from "./routes/add_user/page";
 import ImageGallery from "./routes/image_gallery/page";
 
@@ -161,6 +162,10 @@ function App() {
                                 {
                                     path: "create_destination",
                                     element: <CreateDestination />,
+                                },
+                                {
+                                   path: "create_destination/edit/:id",
+                                   element:<EditDestination/>
                                 },
                                 {
                                     path: "add_user",
