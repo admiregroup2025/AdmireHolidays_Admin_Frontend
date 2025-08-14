@@ -8,7 +8,8 @@ const CreateDestination = () => {
     const [data, setData] = useState({
         type: "domestic",
         destination_name: "",
-        title_image: null // added field
+        image: [], // renamed from images to match backend
+        destination_type: [] // backend expects this name
     });
     const [isLoading, setIsLoading] = useState(false);
 
@@ -20,13 +21,26 @@ const CreateDestination = () => {
     }, [data.type, fetchDestinationList]);
 
     const handleChange = (e) => {
-        const { name, value, files } = e.target;
-        if (name === "title_image") {
+        const { name, value, files, checked, type } = e.target;
+
+        // Multiple images
+        if (name === "image") {
             setData({
                 ...data,
-                title_image: files[0]
+                image: Array.from(files) // keep same name as backend
             });
-        } else {
+        }
+        // Destination types checklist
+        else if (name === "destination_type") {
+            setData({
+                ...data,
+                destination_type: checked
+                    ? [...data.destination_type, value]
+                    : data.destination_type.filter((item) => item !== value)
+            });
+        }
+        // Text/radio fields
+        else {
             setData({
                 ...data,
                 [name]: value,
@@ -41,21 +55,28 @@ const CreateDestination = () => {
             return;
         }
 
-        // Prepare FormData for image upload
         const formData = new FormData();
         formData.append("type", data.type);
         formData.append("destination_name", data.destination_name);
-        if (data.title_image) {
-            formData.append("image", data.title_image);
-        }
+
+        // Append multiple images
+        data.image.forEach((img) => {
+            formData.append("image", img); // backend expects "image"
+        });
+
+        // Append destination types
+        data.destination_type.forEach((t) => {
+            formData.append("destination_type", t); // backend expects "destination_type"
+        });
 
         setIsLoading(true);
-        const result = await createDestination(formData); // backend must handle multipart/form-data
+        const result = await createDestination(formData);
         if (result.success) {
             setData({
                 type: data.type,
                 destination_name: "",
-                title_image: null
+                image: [],
+                destination_type: []
             });
             fetchDestinationList(data.type);
         }
@@ -66,10 +87,6 @@ const CreateDestination = () => {
     useEffect(() => {
         typeRef.current = data.type;
     }, [data.type]);
-
-    const handleEdit = (dest) => {
-        toast.info(`Editing "${dest.destination_name}" (implement edit logic)`);
-    };
 
     const handleDelete = async (id) => {
         const result = await usePlaceStore.getState().deleteDestination(id);
@@ -82,7 +99,7 @@ const CreateDestination = () => {
 
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    
+
                     {/* Destination Type */}
                     <div className="space-y-3">
                         <label className="block text-sm font-medium text-slate-800 dark:text-slate-200">
@@ -133,17 +150,42 @@ const CreateDestination = () => {
                         />
                     </div>
 
-                    {/* Title Image */}
+                    {/* Destination Types Checklist */}
                     <div className="space-y-2">
-                        <label htmlFor="title_image" className="block text-sm font-medium text-slate-800 dark:text-slate-200">
+                        <label className="block text-sm font-medium text-slate-800 dark:text-slate-200">
+                            Destination Categories
+                        </label>
+                        <div className="flex flex-wrap gap-4">
+                            {["trending", "exclusive", "weekend", "home"].map((option) => (
+                                <label key={option} className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        name="destination_type"
+                                        value={option}
+                                        checked={data.destination_type.includes(option)}
+                                        onChange={handleChange}
+                                        className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+                                    />
+                                    <span className="text-gray-700 dark:text-gray-300">
+                                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Multiple Images Upload */}
+                    <div className="space-y-2">
+                        <label htmlFor="image" className="block text-sm font-medium text-slate-800 dark:text-slate-200">
                             <ImageIcon className="mr-2 inline-block size-5 text-slate-500" />
-                            Title Image
+                            Upload Images
                         </label>
                         <input
                             type="file"
-                            id="title_image"
-                            name="title_image"
+                            id="image"
+                            name="image" // backend expects "image"
                             accept="image/*"
+                            multiple
                             onChange={handleChange}
                             className="block w-full text-sm text-gray-700 dark:text-gray-300"
                         />
@@ -195,7 +237,7 @@ const CreateDestination = () => {
                                     <td className="px-2 py-2 text-right">
                                         <button
                                             type="button"
-                                            onClick={() =>navigate(`/create_destination/edit/${dest._id}`)} 
+                                            onClick={() => navigate(`/create_destination/edit/${dest._id}`)}
                                             className="mr-3 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                                         >
                                             <Pencil className="h-5 w-5" />

@@ -10,8 +10,9 @@ const EditDestination = () => {
   const [data, setData] = useState({
     type: "",
     destination_name: "",
-    title_image: null,
-    existingImageUrl: "",
+    image: [], // ✅ consistent key
+    existingImages: [],
+    destination_type: []
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,9 +25,10 @@ const EditDestination = () => {
             type: res.data.destination.domestic_or_international
               ?.toLowerCase()
               .trim(),
-            destination_name: res.data.destination.destination_name,
-            title_image: null,
-            existingImageUrl: res.data.destination.title_image || "",
+            destination_name: res.data.destination.destination_name || "",
+            image: [],
+            existingImages: res.data.destination.title_image || [],
+            destination_type: res.data.destination.destination_type || []
           });
         } else {
           toast.error("Failed to load destination data.");
@@ -39,9 +41,17 @@ const EditDestination = () => {
   }, [id]);
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "title_image") {
-      setData({ ...data, title_image: files[0] });
+    const { name, value, files, checked, type } = e.target;
+
+    if (name === "image") { // ✅ match state key
+      setData({ ...data, image: Array.from(files) });
+    } else if (name === "destination_type") {
+      setData({
+        ...data,
+        destination_type: checked
+          ? [...data.destination_type, value]
+          : data.destination_type.filter((t) => t !== value)
+      });
     } else {
       setData({ ...data, [name]: value });
     }
@@ -54,18 +64,24 @@ const EditDestination = () => {
     const formData = new FormData();
     formData.append("type", data.type);
     formData.append("destination_name", data.destination_name);
-    if (data.title_image) {
-      formData.append("image", data.title_image);
-    }
+
+    data.destination_type.forEach((t) =>
+      formData.append("destination_type", t)
+    );
+
+    data.image.forEach((file) => {
+      formData.append("image", file); // ✅ backend field name
+    });
 
     try {
-      const response = await apiClient.patch(
-        `/admin/destination/${id}`,
+      const response = await apiClient.patch(`/admin/destination/${id}`,
         formData
       );
       if (response.data.success) {
         toast.success("Destination updated successfully.");
         navigate("/create_destination");
+      } else {
+        toast.error(response.data.message || "Update failed.");
       }
     } catch {
       toast.error("Server error while updating destination.");
@@ -74,7 +90,7 @@ const EditDestination = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
+    <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
       <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
         Edit Destination
       </h1>
@@ -90,7 +106,7 @@ const EditDestination = () => {
             value={data.type}
             onChange={handleChange}
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 dark:focus:border-blue-400 dark:focus:ring-blue-500 sm:text-sm"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200"
           >
             <option value="">Select Type</option>
             <option value="domestic">Domestic</option>
@@ -109,36 +125,74 @@ const EditDestination = () => {
             value={data.destination_name}
             onChange={handleChange}
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 dark:focus:border-blue-400 dark:focus:ring-blue-500 sm:text-sm"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200"
           />
         </div>
 
-        {/* Title Image */}
+        {/* Destination Categories */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Title Image
+            Categories
+          </label>
+          <div className="flex gap-4 flex-wrap">
+            {["trending", "exclusive", "weekend", "home"].map((opt) => (
+              <label key={opt} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="destination_type"
+                  value={opt}
+                  checked={data.destination_type.includes(opt)}
+                  onChange={handleChange}
+                />
+                <span>{opt}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Upload New Images */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Upload New Images
           </label>
           <input
             type="file"
-            name="title_image"
+            name="image" // ✅ match handleChange
+            multiple
             onChange={handleChange}
-            className="mt-1 block w-full text-gray-900 dark:text-gray-200 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-gray-300 dark:file:border-gray-700 file:text-sm file:font-medium file:bg-gray-100 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-gray-200 hover:file:bg-gray-200 dark:hover:file:bg-gray-600"
+            className="mt-1 block w-full text-gray-900 dark:text-gray-200"
           />
-          {data.existingImageUrl && (
-            <img
-              src={data.existingImageUrl}
-              alt="Existing"
-              className="mt-3 w-40 h-auto rounded-md border border-gray-300 dark:border-gray-700"
-            />
-          )}
         </div>
+
+        {/* Existing Images from Backend */}
+        {data.existingImages.length > 0 && (
+          <div>
+            <h2 className="mt-4 mb-2 font-medium text-gray-700 dark:text-gray-300">
+              Existing Images
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {data.existingImages.map((img, idx) => (
+                <div
+                  key={idx}
+                  className="relative border rounded-md overflow-hidden"
+                >
+                  <img
+                    src={img}
+                    alt={`Existing ${idx}`}
+                    className="w-full h-28 object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <div>
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900"
+            className="w-full px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md shadow-md"
           >
             {isLoading ? "Updating..." : "Update Destination"}
           </button>
